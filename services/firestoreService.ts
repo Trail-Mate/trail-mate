@@ -1,16 +1,4 @@
-import {
-  collection,
-  addDoc,
-  doc,
-  setDoc,
-  updateDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  deleteDoc,
-} from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import firestore from '@react-native-firebase/firestore';
 import { Plan, Trip } from "../types/Types";
 
 /**
@@ -20,7 +8,7 @@ import { Plan, Trip } from "../types/Types";
  */
 export const createPlan = async (plan: Omit<Plan, "id">): Promise<string> => {
   try {
-    const planRef = await addDoc(collection(db, "plans"), plan);
+    const planRef = await firestore().collection("plans").add(plan);
     return planRef.id;
   } catch (error) {
     console.error("Error creating plan:", error);
@@ -38,8 +26,8 @@ export const updatePlan = async (
   planData: Partial<Plan>
 ): Promise<void> => {
   try {
-    const planRef = doc(db, "plans", planId);
-    await updateDoc(planRef, planData);
+    const planRef = firestore().collection("plans").doc(planId);
+    await planRef.update(planData);
   } catch (error) {
     console.error("Error updating plan:", error);
     throw error;
@@ -53,7 +41,7 @@ export const updatePlan = async (
  */
 export const createTrip = async (trip: Omit<Trip, "id">): Promise<string> => {
   try {
-    const tripRef = await addDoc(collection(db, "trips"), trip);
+    const tripRef = await firestore().collection("trips").add(trip);
     return tripRef.id;
   } catch (error) {
     console.error("Error creating trip:", error);
@@ -68,9 +56,8 @@ export const createTrip = async (trip: Omit<Trip, "id">): Promise<string> => {
  */
 export const getPlan = async (planId: string): Promise<Plan | null> => {
   try {
-    const planRef = doc(db, "plans", planId);
-    const planSnap = await getDoc(planRef);
-
+    const planRef = firestore().collection("plans").doc(planId);
+    const planSnap = await planRef.get();
     if (planSnap.exists()) {
       return { id: planSnap.id, ...planSnap.data() } as Plan;
     } else {
@@ -89,11 +76,8 @@ export const getPlan = async (planId: string): Promise<Plan | null> => {
  */
 export const getUserPlans = async (userId: string): Promise<Plan[]> => {
   try {
-    const plansQuery = query(
-      collection(db, "plans"),
-      where("userId", "==", userId)
-    );
-    const querySnapshot = await getDocs(plansQuery);
+    const plansQuery = firestore().collection("plans").where("userId", "==", userId);
+    const querySnapshot = await plansQuery.get();
 
     const plans: Plan[] = [];
     querySnapshot.forEach((doc) => {
@@ -114,11 +98,8 @@ export const getUserPlans = async (userId: string): Promise<Plan[]> => {
  */
 export const getPlanTrips = async (planId: string): Promise<Trip[]> => {
   try {
-    const tripsQuery = query(
-      collection(db, "trips"),
-      where("planId", "==", planId)
-    );
-    const querySnapshot = await getDocs(tripsQuery);
+    const tripsQuery = firestore().collection("trips").where("planId", "==", planId);
+    const querySnapshot = await tripsQuery.get();
 
     const trips: Trip[] = [];
     querySnapshot.forEach((doc) => {
@@ -144,7 +125,7 @@ export const deletePlan = async (planId: string): Promise<void> => {
     // Delete each trip
     const tripDeletions = trips.map((trip) => {
       if (trip.id) {
-        return deleteDoc(doc(db, "trips", trip.id));
+        return firestore().collection("trips").doc(trip.id).delete();
       }
     });
 
@@ -152,7 +133,7 @@ export const deletePlan = async (planId: string): Promise<void> => {
     await Promise.all(tripDeletions);
 
     // Then delete the plan
-    await deleteDoc(doc(db, "plans", planId));
+    await firestore().collection("plans").doc(planId).delete();
   } catch (error) {
     console.error("Error deleting plan:", error);
     throw error;

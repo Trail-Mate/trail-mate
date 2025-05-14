@@ -1,4 +1,4 @@
-package com.trailmate.app
+package com.trailmate.dev
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

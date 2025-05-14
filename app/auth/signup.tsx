@@ -14,12 +14,8 @@ import { Colors } from "../../constants/Colors";
 import { Typography } from "../../constants/Typography";
 import { useState } from "react";
 import { Feather } from "@expo/vector-icons";
-import {
-  createUserWithEmailAndPassword,
-  sendEmailVerification,
-} from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "../../services/firebaseConfig";
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { useColorScheme } from "../../hooks/useColorScheme";
 
 export default function Signup() {
@@ -55,15 +51,14 @@ export default function Signup() {
 
     try {
       // Create a new user with Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
+      const userCredential = await auth().createUserWithEmailAndPassword(
         email,
         password
       );
       const user = userCredential.user;
 
       // Store additional user data in Firestore
-      await setDoc(doc(db, "users", user.uid), {
+      await firestore().collection("users").doc(user.uid).set({
         firstname,
         lastname,
         email,
@@ -74,7 +69,7 @@ export default function Signup() {
       console.log("User created and data saved:", user.uid);
 
       // Send email verification to the user
-      await sendEmailVerification(user);
+      await user.sendEmailVerification();
       alert(
         "Registration successful! A verification email has been sent to your email address."
       );

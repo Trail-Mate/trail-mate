@@ -3,8 +3,7 @@ import { StyleSheet, View, Image, Animated } from "react-native";
 import { Redirect } from "expo-router";
 import { Colors } from "../constants/Colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { auth } from "../services/firebaseConfig";
-import { onAuthStateChanged } from "firebase/auth";
+import auth from '@react-native-firebase/auth';
 
 export default function Index() {
   const [isReady, setIsReady] = useState(false);
@@ -28,7 +27,7 @@ export default function Index() {
         }
 
         // Set up Firebase auth listener
-        authUnsubscribe = onAuthStateChanged(auth, (user) => {
+        authUnsubscribe = auth().onAuthStateChanged((user) => {
           if (isMounted) {
             setIsLoggedIn(!!user);
             console.log("User is logged in:", !!user);

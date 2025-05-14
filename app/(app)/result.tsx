@@ -15,16 +15,9 @@ import { Colors } from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Trip as FirestoreTrip } from "@/types/Types";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  updateDoc,
-  doc,
-} from "firebase/firestore";
-import { db, auth } from "../../services/firebaseConfig";
 import { useColorScheme } from "../../hooks/useColorScheme";
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 // Define the Trip interface for type safety
 interface Trip {
@@ -76,19 +69,16 @@ export default function Result() {
         const targetPlanId = routePlanId ? String(routePlanId) : lastPlanId;
 
         if (targetPlanId) {
-          const user = auth.currentUser;
+          const user = auth().currentUser;
           if (!user) {
             setError("You must be logged in to view recommendations");
             setLoading(false);
             return;
           }
 
-          const tripsCollection = collection(db, "trips");
-          const tripsQuery = query(
-            tripsCollection,
-            where("planId", "==", targetPlanId)
-          );
-          const tripsSnapshot = await getDocs(tripsQuery);
+          const tripsCollection = firestore().collection("trips");
+          const tripsQuery = tripsCollection.where("planId", "==", targetPlanId);
+          const tripsSnapshot = await tripsQuery.get();
 
           const firestoreTrips: FirestoreTrip[] = [];
           tripsSnapshot.forEach((doc) => {
@@ -147,7 +137,7 @@ export default function Result() {
 
   const handleBookmarkPress = async (trip: Trip, index: number) => {
     try {
-      const user = auth.currentUser;
+      const user = auth().currentUser;
       if (!user) {
         console.error("User must be logged in to bookmark trips");
         return;
@@ -160,8 +150,8 @@ export default function Result() {
 
       const isCurrentlyBookmarked = trip.bookmarked || false;
 
-      const tripRef = doc(db, "trips", trip.id);
-      await updateDoc(tripRef, {
+      const tripRef = firestore().collection("trips").doc(trip.id);
+      await tripRef.update({
         bookmarked: !isCurrentlyBookmarked
       });
 

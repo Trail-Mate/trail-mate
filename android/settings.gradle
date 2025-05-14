@@ -21,7 +21,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
   }
 }
 
-rootProject.name = 'trail-mate'
+rootProject.name = 'TrailMate Dev'
 
 dependencyResolutionManagement {
   versionCatalogs {

@@ -1,4 +1,4 @@
-package com.trailmate.app
+package com.trailmate.dev
 
 import android.app.Application
 import android.content.res.Configuration

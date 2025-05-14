@@ -16,16 +16,9 @@ import { Colors } from "../../constants/Colors";
 import { Typography } from "../../constants/Typography";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useState, useEffect, useRef } from "react";
-import { auth, db } from "../../services/firebaseConfig";
-import {
-  doc,
-  getDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-  deleteDoc,
-} from "firebase/firestore";
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+
 import { Plan as PlanType, Trip as TripType } from "../../types/Types";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -297,17 +290,14 @@ export default function Home() {
 
   // Replace fetchUserName with fetchUserData
   const fetchUserData = async () => {
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     if (user) {
-      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const userDoc = await firestore().collection('users').doc(user.uid).get();
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        setUserName(userData.firstname);
-
+        setUserName(userData?.firstname || '');
         // Get eco points from Firestore
-        const pointsValue =
-          userData.ecoPoints !== undefined ? userData.ecoPoints : 0; // Fallback to 0 if ecoPoints is undefined
-
+        const pointsValue = userData?.ecoPoints !== undefined ? userData.ecoPoints : 0;
         setEcoPoints(pointsValue);
       }
     }
@@ -315,21 +305,17 @@ export default function Home() {
 
   const fetchPlans = async () => {
     try {
-      const user = auth.currentUser;
+      const user = auth().currentUser;
       if (user) {
-        const plansCollection = collection(db, "plans");
-        // Only fetch plans associated with the current user
-        const userPlansQuery = query(
-          plansCollection,
-          where("userId", "==", user.uid)
-        );
-        const plansSnapshot = await getDocs(userPlansQuery);
+        const plansSnapshot = await firestore()
+          .collection('plans')
+          .where('userId', '==', user.uid)
+          .get();
         const plansList = plansSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
           image: doc.data().imageUrl || placeholderImage,
         })) as Plan[];
-
         // Sort plans by date (newest first)
         const sortedPlans = plansList.sort((a, b) => {
           const dateA = a.preferences?.dateRange?.startDate
@@ -338,75 +324,56 @@ export default function Home() {
           const dateB = b.preferences?.dateRange?.startDate
             ? new Date(b.preferences.dateRange.startDate).getTime()
             : 0;
-          return dateB - dateA; // Descending order (newest first)
+          return dateB - dateA;
         });
-
         setPlans(sortedPlans);
       }
     } catch (error) {
-      console.error("Error fetching plans:", error);
+      console.error('Error fetching plans:', error);
     }
   };
 
   const fetchTrips = async () => {
     try {
-      const user = auth.currentUser;
+      const user = auth().currentUser;
       if (user) {
         // Fetch trips that are bookmarked AND belong to the current user
-        const tripsCollection = collection(db, "trips");
-        const bookmarkedTripsQuery = query(
-          tripsCollection,
-          where("bookmarked", "==", true),
-          where("userId", "==", user.uid)
-        );
-        const tripsSnapshot = await getDocs(bookmarkedTripsQuery);
-
+        const tripsSnapshot = await firestore()
+          .collection('trips')
+          .where('bookmarked', '==', true)
+          .where('userId', '==', user.uid)
+          .get();
         const tripsList = tripsSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
           image: doc.data().imageUrl || placeholderImage,
         })) as Trip[];
-
-        // console.log("Bookmarked Trips:", tripsList);
-
         // Fetch dates for trips from plans collection
         const dates: { [tripId: string]: string } = {};
-        const plansCollection = collection(db, "plans");
-        const userPlansQuery = query(
-          plansCollection,
-          where("userId", "==", user.uid)
-        );
-        const plansSnapshot = await getDocs(userPlansQuery);
-
+        const plansSnapshot = await firestore()
+          .collection('plans')
+          .where('userId', '==', user.uid)
+          .get();
         plansSnapshot.docs.forEach((planDoc) => {
           const planData = planDoc.data();
           if (planData.tripIds && planData.preferences?.dateRange?.startDate) {
-            // For each trip ID in this plan
             planData.tripIds.forEach((tripId: string) => {
               dates[tripId] = planData.preferences.dateRange.startDate;
             });
           }
         });
-
         setTripDates(dates);
-
         // Sort trips by date (newest first)
         const sortedTrips = tripsList.sort((a, b) => {
-          const dateA = dates[a.id || ""]
-            ? new Date(dates[a.id || ""]).getTime()
-            : 0;
-          const dateB = dates[b.id || ""]
-            ? new Date(dates[b.id || ""]).getTime()
-            : 0;
-          return dateB - dateA; // Descending order (newest first)
+          const dateA = dates[a.id || ''] ? new Date(dates[a.id || '']).getTime() : 0;
+          const dateB = dates[b.id || ''] ? new Date(dates[b.id || '']).getTime() : 0;
+          return dateB - dateA;
         });
-
         setTrips(sortedTrips);
-        // console.log("Sorted Trips:", sortedTrips);
       }
     } catch (error) {
-      console.error("Error fetching trips:", error);
-      console.error("Error fetching plans:", error);
+      console.error('Error fetching trips:', error);
+      console.error('Error fetching plans:', error);
     }
   };
 
@@ -433,26 +400,22 @@ export default function Home() {
   // --- Deletion Handlers ---
   const handleDeleteTrip = async (tripId: string) => {
     Alert.alert(
-      "Delete Trip",
-      "Are you sure you want to delete this trip? This action cannot be undone.",
+      'Delete Trip',
+      'Are you sure you want to delete this trip? This action cannot be undone.',
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             try {
               // Delete only the trip document
-              const tripDocRef = doc(db, "trips", tripId);
-              await deleteDoc(tripDocRef);
-
+              await firestore().collection('trips').doc(tripId).delete();
               // Update local trips state
-              setTrips((prevTrips) =>
-                prevTrips.filter((trip) => trip.id !== tripId)
-              );
+              setTrips((prevTrips) => prevTrips.filter((trip) => trip.id !== tripId));
             } catch (error) {
-              console.error("Error deleting trip:", error);
-              Alert.alert("Error", "Could not delete trip.");
+              console.error('Error deleting trip:', error);
+              Alert.alert('Error', 'Could not delete trip.');
             }
           },
         },
@@ -463,58 +426,46 @@ export default function Home() {
   // --- Plan Deletion Handler ---
   const handleDeletePlan = async (planId: string) => {
     Alert.alert(
-      "Delete Plan",
-      "Are you sure you want to delete this plan and its associated trips? This action cannot be undone.",
+      'Delete Plan',
+      'Are you sure you want to delete this plan and its associated trips? This action cannot be undone.',
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             try {
               // 1. Fetch the plan document to get tripIds
-              const planDocRef = doc(db, "plans", planId);
-              const planDocSnap = await getDoc(planDocRef);
-
+              const planDocRef = firestore().collection('plans').doc(planId);
+              const planDocSnap = await planDocRef.get();
               if (planDocSnap.exists()) {
                 const planData = planDocSnap.data();
-                const tripIdsToDelete = planData.tripIds as
-                  | string[]
-                  | undefined;
-
+                const tripIdsToDelete = planData?.tripIds as string[] | undefined;
                 // 2. Delete associated trips if they exist
                 if (tripIdsToDelete && Array.isArray(tripIdsToDelete)) {
                   const deletePromises = tripIdsToDelete.map((tripId) =>
-                    deleteDoc(doc(db, "trips", tripId))
+                    firestore().collection('trips').doc(tripId).delete()
                   );
                   await Promise.all(deletePromises);
-
                   // --- Delete cache for each trip ---
                   for (const tripId of tripIdsToDelete) {
                     await deleteCachedTrailData(tripId);
                     await deleteCachedChatMessages(tripId);
                   }
                   // --- End cache deletion ---
-
                   // 3. Update local trips state
                   setTrips((prevTrips) =>
-                    prevTrips.filter(
-                      (trip) => !tripIdsToDelete.includes(trip.id || "")
-                    )
+                    prevTrips.filter((trip) => !tripIdsToDelete.includes(trip.id || ''))
                   );
                 }
               }
-
               // 4. Delete the plan document itself
-              await deleteDoc(planDocRef);
-
+              await planDocRef.delete();
               // 5. Update local plans state
-              setPlans((prevPlans) =>
-                prevPlans.filter((plan) => plan.id !== planId)
-              );
+              setPlans((prevPlans) => prevPlans.filter((plan) => plan.id !== planId));
             } catch (error) {
-              console.error("Error deleting plan and associated trips:", error);
-              Alert.alert("Error", "Could not delete plan or its trips.");
+              console.error('Error deleting plan and associated trips:', error);
+              Alert.alert('Error', 'Could not delete plan or its trips.');
             }
           },
         },

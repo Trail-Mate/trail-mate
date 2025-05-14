@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "trail-mate",
+    "name": "TrailMate Dev",
     "slug": "trail-mate",
     "owner": "trail-mate",
     "version": "1.0.0",
@@ -12,9 +12,9 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.trailmate.app",
+      "bundleIdentifier": "com.trailmate.dev",
       "appleTeamId": "5H4VD3F5J6",
-      "buildNumber": "2.0.0",
+      "buildNumber": "1.0.0",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow Trail Mate to access your camera for trip photos.",
         "NSLocationWhenInUseUsageDescription": "Allow Trail Mate to access your location for trail features.",
@@ -23,8 +23,8 @@
       }
     },
     "android": {
-      "package": "com.trailmate.app",
-      "versionCode": 2,
+      "package": "com.trailmate.dev",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

@@ -13,12 +13,8 @@ import { Typography } from "../../constants/Typography";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
-import {
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail,
-} from "firebase/auth";
-import { auth, db } from "../../services/firebaseConfig";
-import { doc, updateDoc } from "firebase/firestore";
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { useColorScheme } from "../../hooks/useColorScheme";
 
 // Main authentication screen component
@@ -41,8 +37,7 @@ export default function AuthIndex() {
 
     try {
       console.log("Attempting to log in with email:", email);
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
+      const userCredential = await auth().signInWithEmailAndPassword(
         trimmedEmail,
         password
       );
@@ -51,7 +46,7 @@ export default function AuthIndex() {
       // Check if the user's email is verified
       if (user.emailVerified) {
         // Update Firestore with email verification status
-        await updateDoc(doc(db, "users", user.uid), {
+        await firestore().collection("users").doc(user.uid).update({
           email: user.email,
           emailVerified: true,
         });
@@ -74,7 +69,7 @@ export default function AuthIndex() {
     }
 
     try {
-      await sendPasswordResetEmail(auth, trimmedEmail);
+      await auth().sendPasswordResetEmail(trimmedEmail);
       alert(
         "A password reset email has been sent to your email address. Please check your inbox."
       );

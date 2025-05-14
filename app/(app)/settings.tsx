@@ -14,8 +14,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../constants/Colors";
 import { Typography } from "../../constants/Typography";
-import { auth } from "../../services/firebaseConfig";
-import { signOut } from "firebase/auth";
+import auth from '@react-native-firebase/auth';
 import { useColorScheme } from "../../hooks/useColorScheme";
 import { useTemperatureUnit } from "../../hooks/useTemperatureUnit";
 import { Share } from "react-native";
@@ -31,7 +30,7 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await auth().signOut();
       router.replace("/auth");
     } catch (error) {
       Alert.alert("Error", "Failed to log out. Please try again.");

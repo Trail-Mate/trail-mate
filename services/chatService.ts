@@ -1,19 +1,11 @@
-import {
-  doc,
-  updateDoc,
-  arrayUnion,
-  getDoc,
-  Timestamp,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import firestore from '@react-native-firebase/firestore';
 import { Trip } from "../types/Types";
 
 export type ChatMessage = {
   id: string;
   text: string;
   sender: "user" | "bot";
-  timestamp: Timestamp;
+  timestamp: any; // Use Firestore Timestamp type if needed
 };
 
 /**
@@ -27,18 +19,18 @@ export const saveChatMessage = async (
   message: Omit<ChatMessage, "id" | "timestamp">
 ): Promise<string> => {
   try {
-    const tripRef = doc(db, "trips", tripId);
+    const tripRef = firestore().collection("trips").doc(tripId);
     const messageId = Date.now().toString(); // Generate a unique ID
 
     const newMessage: ChatMessage = {
       id: messageId,
       ...message,
-      timestamp: Timestamp.now(),
+      timestamp: firestore.FieldValue.serverTimestamp(),
     };
 
     // Update the trip document by adding the new message to chatHistory
-    await updateDoc(tripRef, {
-      chatHistory: arrayUnion(newMessage),
+    await tripRef.update({
+      chatHistory: firestore.FieldValue.arrayUnion(newMessage),
     });
 
     return messageId;
@@ -57,10 +49,10 @@ export const getChatMessages = async (
   tripId: string
 ): Promise<ChatMessage[]> => {
   try {
-    const tripRef = doc(db, "trips", tripId);
-    const tripDoc = await getDoc(tripRef);
+    const tripRef = firestore().collection("trips").doc(tripId);
+    const tripDoc = await tripRef.get();
 
-    if (!tripDoc.exists()) {
+    if (!tripDoc.exists) {
       throw new Error("Trip not found");
     }
 

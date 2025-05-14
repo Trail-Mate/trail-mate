@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, Linking, TouchableOpacity, Image, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { db } from "../../../services/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import firestore from "@react-native-firebase/firestore";
 import { useColorScheme } from "../../../hooks/useColorScheme";
 import { useTemperatureUnit } from "../../../hooks/useTemperatureUnit";
 import { Colors } from "../../../constants/Colors";
@@ -85,7 +84,7 @@ export default function InfoTab({ tripId, tripData }: InfoTabProps) {
             console.log('Trail data loaded from CACHE for InfoTab:', currentTripId);
             setTripInfo(cached);
           } else {
-            const tripDoc = await getDoc(doc(db, "trips", currentTripId));
+            const tripDoc = await firestore().collection("trips").doc(currentTripId).get();
             if (tripDoc.exists()) {
               console.log('Trail data loaded from FIREBASE for InfoTab:', currentTripId);
               setTripInfo(tripDoc.data());
